@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文博出攤打包清單</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f7f1e8; --paper:#fffaf2; --ink:#302823; --muted:#7a6e63; --faint:#a99c8d;
+  --line:#d8c9b8; --accent:#9f4d38; --done:#6a7f55; --warn:#c07a2a; --warnbg:#fbefdd;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;min-width:320px;background:var(--bg);color:var(--ink);font-size:16px;-webkit-text-size-adjust:100%}
+button,input{font:inherit}
+.page{width:min(760px,calc(100% - 24px));margin:0 auto;padding:22px 0 60px}
+.sheet{border:1px solid var(--line);border-radius:10px;background:var(--paper);box-shadow:0 16px 40px rgba(68,48,28,.12);overflow:hidden}
+header{padding:22px 20px 16px;border-bottom:1px solid var(--line)}
+h1{margin:0;font-size:26px;font-weight:600;letter-spacing:.5px}
+.meta{margin-top:8px;color:var(--muted);font-size:13px;line-height:1.6}
+.meta b{color:var(--accent);font-weight:600}
+.bar-wrap{margin-top:16px}
+.bar-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted);margin-bottom:6px}
+.bar-top b{color:var(--ink);font-size:15px;font-weight:600}
+.bar{height:9px;background:#eaded0;border-radius:6px;overflow:hidden}
+.bar>span{display:block;height:100%;width:0;background:var(--done);transition:width .3s}
+.cat{border-top:1px solid var(--line)}
+.cat:first-of-type{border-top:0}
+.cat-head{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none;background:rgba(216,201,184,.18)}
+.cat-head:hover{background:rgba(216,201,184,.3)}
+.chev{color:var(--faint);font-size:13px;transition:transform .2s;width:12px}
+.cat.collapsed .chev{transform:rotate(-90deg)}
+.cat-name{font-weight:600;font-size:16px;flex:1}
+.cat-count{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cat-body{padding:2px 0}
+.cat.collapsed .cat-body{display:none}
+.grp{padding:9px 18px 3px;font-size:12px;color:var(--accent);font-weight:600;letter-spacing:.3px}
+.item{display:flex;align-items:flex-start;gap:11px;padding:9px 18px;border-top:1px solid rgba(216,201,184,.55)}
+.grp + .item{border-top:0}
+.item:first-child{border-top:0}
+.item input[type=checkbox]{width:20px;height:20px;margin-top:1px;accent-color:var(--done);flex:none}
+.body-txt{flex:1;min-width:0}
+.txt{line-height:1.4;font-size:15px;cursor:text}
+.txt.editing{outline:none;border-bottom:2px solid var(--accent);padding-bottom:1px}
+.txt.editing.confirmed{border-bottom-color:transparent}
+.item.done .txt{color:var(--faint);text-decoration:line-through}
+.sub{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.sub .sku{color:var(--faint);font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;margin-left:2px;vertical-align:middle}
+.tag.stock{background:#eaf0e2;color:#546a3f}
+.tag.zero{background:var(--warnbg);color:var(--warn)}
+.del{flex:none;border:0;background:transparent;color:var(--faint);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;margin-top:-1px}
+.del:hover{color:var(--accent)}
+.ship{flex:none;align-self:center;border:1px solid var(--line);background:#fffdf8;color:var(--faint);border-radius:20px;font-size:11px;padding:3px 9px;cursor:pointer;white-space:nowrap}
+.ship.s-store{border-color:#5a86c4;background:#e7effa;color:#37547f}
+.ship.s-lug{border-color:#c78a3a;background:#f8eeda;color:#835820}
+.ship.s-bf{border-color:#6a9e6a;background:#e8f2e5;color:#3d663d}
+.fbar{position:sticky;top:0;z-index:5;display:flex;gap:8px;flex-wrap:wrap;padding:11px 18px;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:0 6px 12px -8px rgba(68,48,28,.25)}
+.fchip{border:1px solid var(--line);background:#fffdf8;color:var(--muted);border-radius:20px;padding:6px 13px;font-size:13px;cursor:pointer;font-variant-numeric:tabular-nums}
+.fchip.on{border-color:var(--accent);background:var(--accent);color:#fffaf2}
+.handle{flex:none;align-self:center;cursor:grab;color:var(--faint);font-size:18px;line-height:1;padding:10px 10px 10px 2px;margin:-8px 0;touch-action:none;user-select:none}
+.handle:active{cursor:grabbing}
+.item.dragging{position:fixed;z-index:1000;background:var(--paper);border-radius:8px;box-shadow:0 10px 28px rgba(68,48,28,.28);opacity:.97}
+.drop-ph{height:0;margin:0 18px;border-top:2px dashed var(--accent)}
+.add{display:flex;gap:8px;padding:10px 18px 14px}
+.add input{flex:1;min-height:40px;border:1px solid var(--line);border-bottom:2px solid var(--accent);border-radius:8px;background:#fffdf8;color:var(--ink);padding:8px 11px;font-size:15px}
+.add input.confirmed{border-bottom-color:var(--line)}
+.add button{min-height:40px;border:1px solid var(--accent);border-radius:8px;background:var(--accent);color:#fffaf2;padding:8px 15px;cursor:pointer;font-size:14px}
+.hint{color:var(--faint);font-size:11px;padding:0 18px 12px}
+.foot{padding:14px 18px 4px;color:var(--faint);font-size:11.5px;line-height:1.6;border-top:1px solid var(--line)}
+.reset{margin:12px 18px 4px;border:1px solid var(--line);background:#fffdf8;color:var(--muted);border-radius:8px;padding:7px 13px;font-size:12.5px;cursor:pointer}
+.reset:hover{border-color:var(--accent);color:var(--accent)}
+</style>
+<style>
+#lock{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg,#f7f1e8);padding:20px}
+#lock .box{width:min(340px,100%);border:1px solid var(--line,#d8c9b8);border-radius:12px;background:var(--paper,#fffaf2);box-shadow:0 16px 40px rgba(68,48,28,.14);padding:28px 24px;text-align:center}
+#lock .ico{font-size:34px}
+#lock h2{margin:8px 0 2px;font-size:19px;color:var(--ink,#302823);font-weight:600}
+#lock p{margin:0 0 16px;font-size:13px;color:var(--muted,#7a6e63)}
+#lock input[type=password]{width:100%;min-height:44px;border:1px solid var(--line,#d8c9b8);border-bottom:2px solid var(--accent,#9f4d38);border-radius:8px;background:#fffdf8;color:var(--ink,#302823);padding:9px 12px;font-size:18px;text-align:center;letter-spacing:3px}
+#lock input.confirmed{border-bottom-color:var(--line,#d8c9b8)}
+#lock .rem{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0;font-size:12.5px;color:var(--muted,#7a6e63)}
+#lock button{width:100%;min-height:44px;border:0;border-radius:8px;background:var(--accent,#9f4d38);color:#fffaf2;font-size:15px;cursor:pointer}
+#lock .err{margin-top:10px;font-size:12.5px;color:#c0392b;min-height:16px}
+</style>
+</head>
+<body>
+<div id="lock"><div class="box">
+  <div class="ico">🔒</div>
+  <h2>文博出攤打包清單</h2>
+  <p>請輸入密碼</p>
+  <input id="pw" type="password" inputmode="numeric" autocomplete="off" placeholder="••••">
+  <label class="rem"><input type="checkbox" id="remember" checked> 記住這台裝置</label>
+  <button id="unlock">解鎖</button>
+  <div class="err" id="lockerr"></div>
+</div></div>
+<div class="page"><div class="sheet">
+<header>
+  <h1>📦 文博出攤打包清單</h1>
+  <div class="meta">展期 <b>8/6–8/12</b> ｜ 攤位 <b>K1-055</b>（台灣文博會）<br>勾選＝已打包上車。<b>點項目文字可直接改</b>（Enter 兩段式：第一下確認、第二下儲存）。每項右側標籤點一下切換運送方式（🚚超商寄／🧳行李箱／🏠男友家），上方一排可篩選只看某一種。<br>商品區為主檔真實品項，<span style="color:var(--warn)">庫存 0</span> 的款多為發包中，出發前確認到貨。</div>
+  <div class="bar-wrap">
+    <div class="bar-top"><span>整體打包進度</span><b><span id="pd">0</span> / <span id="pt">0</span></b></div>
+    <div class="bar"><span id="pf"></span></div>
+  </div>
+</header>
+<div class="fbar" id="fbar"></div>
+<div id="cats"></div>
+<button class="reset" id="reset">清空所有勾選</button>
+<div class="foot">
+  資料來源：商品營運管理 xlsx「文博商品清單 / 文博發包追蹤」（2026-07-24）。<br>
+  勾選狀態存在這台裝置的瀏覽器，換裝置不同步。四類底稿可自由增刪、拖曳排序（也能跨類搬移），商品照主檔為準。
+</div>
+</div></div>
+<script>
+let DATA = [];
+const ENC = {"salt":"jnFJKLXcz2td/aCZRMmsIg==","iv":"O5me0z0oKkr9fGKc","ct":"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","iter":200000};
+
+const KEY="expo-pack-v1";
+let st = JSON.parse(localStorage.getItem(KEY) || "{}");
+st.checked = st.checked || {};
+st.custom  = st.custom  || {};
+st.removed = st.removed || {};
+st.fold    = st.fold    || {};
+st.labels  = st.labels  || {};
+st.ship    = st.ship    || {};
+st.filter  = st.filter  || "";
+st.order   = st.order   || {};
+if(!st._shipSeeded){ st.ship["deco-0"]="bf"; st.ship["deco-4"]="bf"; st._shipSeeded=true; }
+const save = ()=>localStorage.setItem(KEY, JSON.stringify(st));
+const SHIP = [
+  {k:"",        emoji:"⚪️", name:"運送？", cls:""},
+  {k:"store",   emoji:"🚚", name:"超商寄", cls:"s-store"},
+  {k:"luggage", emoji:"🧳", name:"行李箱", cls:"s-lug"},
+  {k:"bf",      emoji:"🏠", name:"男友家", cls:"s-bf"},
+];
+
+function itemRow(id, text, sub, deletable, draggable){
+  const done = st.checked[id] ? " done":"";
+  const el = document.createElement("div");
+  el.className = "item"+done+(draggable?" draggable":"");
+  el.innerHTML =
+    (draggable?`<span class="handle" title="按住拖曳排序">⠿</span>`:"")+
+    `<input type="checkbox" ${st.checked[id]?"checked":""}>`+
+    `<div class="body-txt"><div class="txt"></div>${sub?`<div class="sub">${sub}</div>`:""}</div>`+
+    (deletable?`<button class="del" title="移除">×</button>`:"");
+  const txtEl = el.querySelector(".txt");
+  txtEl.textContent = text;
+  txtEl.title = "點一下改文字";
+  txtEl.addEventListener("click", ()=>startEdit(txtEl, id));
+  el.querySelector("input").onchange = e=>{
+    if(e.target.checked) st.checked[id]=true; else delete st.checked[id];
+    el.classList.toggle("done", e.target.checked); save(); tally();
+  };
+  el.dataset.id = id;
+  const ship = document.createElement("button");
+  const paintShip = ()=>{
+    const s = SHIP.find(x=>x.k===(st.ship[id]||"")) || SHIP[0];
+    ship.className = "ship "+(s.cls||"");
+    ship.textContent = s.emoji + " " + s.name;
+    ship.title = "點一下換運送方式";
+  };
+  ship.onclick = ()=>{
+    const i = SHIP.findIndex(x=>x.k===(st.ship[id]||""));
+    const nx = SHIP[(i+1)%SHIP.length];
+    if(nx.k) st.ship[id]=nx.k; else delete st.ship[id];
+    save(); paintShip(); applyFilter();
+  };
+  paintShip();
+  const del = el.querySelector(".del");
+  if(del){ del.onclick = ()=>{ removeItem(id); }; el.insertBefore(ship, del); }
+  else el.appendChild(ship);
+  return el;
+}
+
+function removeItem(id){
+  for(const c in st.custom){
+    const i = st.custom[c].findIndex(x=>x.id===id);
+    if(i>-1){ st.custom[c].splice(i,1); delete st.checked[id]; save(); render(); return; }
+  }
+  st.removed[id]=true; delete st.checked[id]; save(); render();
+}
+
+function saveLabel(id, v){
+  for(const c in st.custom){
+    const it = st.custom[c].find(x=>x.id===id);
+    if(it){ it.text = v; save(); return; }
+  }
+  st.labels[id] = v; save();
+}
+
+function startEdit(txtEl, id){
+  if(txtEl.isContentEditable) return;
+  const orig = txtEl.textContent;
+  let confirmed = false, closed = false;
+  txtEl.contentEditable = "true";
+  txtEl.classList.add("editing");
+  txtEl.focus();
+  const sel = window.getSelection(); sel.selectAllChildren(txtEl); sel.collapseToEnd();
+  const onInput = ()=>{ if(confirmed){ confirmed=false; txtEl.classList.remove("confirmed"); } };
+  const onKey = e=>{
+    if(e.key==="Enter"){
+      e.preventDefault();
+      if(!confirmed){ confirmed=true; txtEl.classList.add("confirmed"); }
+      else finish(true);
+    } else if(e.key==="Escape"){ e.preventDefault(); finish(false); }
+  };
+  const onBlur = ()=>finish(true);
+  const finish = save_it=>{
+    if(closed) return; closed = true;
+    txtEl.removeEventListener("input", onInput);
+    txtEl.removeEventListener("keydown", onKey);
+    txtEl.removeEventListener("blur", onBlur);
+    txtEl.contentEditable = "false";
+    txtEl.classList.remove("editing","confirmed");
+    const v = txtEl.textContent.trim();
+    if(save_it && v && v!==orig) saveLabel(id, v);
+    else txtEl.textContent = orig;
+  };
+  txtEl.addEventListener("input", onInput);
+  txtEl.addEventListener("keydown", onKey);
+  txtEl.addEventListener("blur", onBlur);
+}
+
+function render(){
+  const root = document.getElementById("cats");
+  root.innerHTML="";
+  DATA.forEach(cat=>{
+    const wrap = document.createElement("div");
+    wrap.className = "cat"+(st.fold[cat.id]?" collapsed":"");
+    const head = document.createElement("div");
+    head.className="cat-head";
+    head.innerHTML = `<span class="chev">▼</span><span class="cat-name">${cat.name}</span><span class="cat-count" id="c-${cat.id}"></span>`;
+    head.onclick = ()=>{ st.fold[cat.id]=!st.fold[cat.id]; save(); wrap.classList.toggle("collapsed"); };
+    wrap.appendChild(head);
+    const body = document.createElement("div");
+    body.className="cat-body";
+
+    if(cat.groups){ // 商品
+      cat.groups.forEach(gr=>{
+        const gh=document.createElement("div"); gh.className="grp"; gh.textContent=gr.g; body.appendChild(gh);
+        gr.items.forEach(it=>{
+          const [name,stock,note]=it;
+          const id = name.split(" ")[0];
+          if(st.removed[id]) return;
+          const tag = stock>0 ? `<span class="tag stock">現貨 ${stock}</span>` : `<span class="tag zero">待到貨</span>`;
+          const sub = `<span class="sku">${tag}</span>${note?" · "+note:""}`;
+          const disp = st.labels[id] || (name.split(" ").slice(1).join(" ")||name);
+          body.appendChild(itemRow(id, disp, sub, false));
+        });
+      });
+    } else { // 底稿四類
+      body.classList.add("sortable"); body.dataset.cat = cat.id;
+      const base = cat.plain.map((t,i)=>({id:cat.id+"-"+i, text:st.labels[cat.id+"-"+i]||t}))
+                            .filter(x=>!st.removed[x.id]);
+      const cust = (st.custom[cat.id]||[]).map(x=>({id:x.id, text:x.text}));
+      let items = base.concat(cust);
+      const ord = st.order[cat.id];
+      if(ord){ items.sort((a,b)=>{
+        let ia=ord.indexOf(a.id), ib=ord.indexOf(b.id);
+        if(ia<0) ia=1e9; if(ib<0) ib=1e9; return ia-ib;
+      }); }
+      items.forEach(it=> body.appendChild(itemRow(it.id, it.text, "", true, true)));
+      const add=document.createElement("div"); add.className="add";
+      add.innerHTML=`<input type="text" placeholder="新增一項…"><button>加入</button>`;
+      const inp=add.querySelector("input"), btn=add.querySelector("button");
+      let confirmed=false;
+      const commit=()=>{ const v=inp.value.trim(); if(!v)return;
+        (st.custom[cat.id]=st.custom[cat.id]||[]).push({id:"x"+Date.now(),text:v}); save(); render(); };
+      inp.oninput=()=>{ confirmed=false; inp.classList.remove("confirmed"); };
+      inp.onkeydown=e=>{ if(e.key!=="Enter")return; e.preventDefault();
+        if(!confirmed){ confirmed=true; inp.classList.add("confirmed"); }
+        else commit();
+      };
+      btn.onclick=commit;
+      body.appendChild(add);
+      const hint=document.createElement("div"); hint.className="hint";
+      hint.textContent="Enter 兩段式：第一下底線消失＝確認，第二下才加入 · 按住左側 ⠿ 可拖曳排序，也能拖到別的類別";
+      body.appendChild(hint);
+    }
+    wrap.appendChild(body);
+    root.appendChild(wrap);
+  });
+  tally(); buildChips(); applyFilter(); enableDragGlobal();
+}
+
+function tally(){
+  let done=0,total=0;
+  DATA.forEach(cat=>{
+    let cd=0,ct=0;
+    const ids=[];
+    if(cat.groups){ cat.groups.forEach(gr=>gr.items.forEach(it=>{
+      const id=it[0].split(" ")[0]; if(!st.removed[id]) ids.push(id);
+    })); }
+    else{
+      cat.plain.forEach((t,i)=>{ const id=cat.id+"-"+i; if(!st.removed[id]) ids.push(id); });
+      (st.custom[cat.id]||[]).forEach(x=>ids.push(x.id));
+    }
+    ids.forEach(id=>{ ct++; if(st.checked[id]) cd++; });
+    const cc=document.getElementById("c-"+cat.id); if(cc) cc.textContent=`${cd} / ${ct}`;
+    done+=cd; total+=ct;
+  });
+  document.getElementById("pd").textContent=done;
+  document.getElementById("pt").textContent=total;
+  document.getElementById("pf").style.width=(total?done/total*100:0)+"%";
+}
+
+function allItemIds(){
+  const ids=[];
+  DATA.forEach(cat=>{
+    if(cat.groups) cat.groups.forEach(gr=>gr.items.forEach(it=>{
+      const id=it[0].split(" ")[0]; if(!st.removed[id]) ids.push(id);
+    }));
+    else{
+      cat.plain.forEach((t,i)=>{ const id=cat.id+"-"+i; if(!st.removed[id]) ids.push(id); });
+      (st.custom[cat.id]||[]).forEach(x=>ids.push(x.id));
+    }
+  });
+  return ids;
+}
+function buildChips(){
+  const bar=document.getElementById("fbar");
+  bar.innerHTML="";
+  [{k:"",t:"全部"},{k:"store",t:"🚚 超商寄"},{k:"luggage",t:"🧳 行李箱"},{k:"bf",t:"🏠 男友家"}].forEach(d=>{
+    const b=document.createElement("button");
+    b.className="fchip"; b.dataset.f=d.k; b.dataset.label=d.t;
+    b.onclick=()=>{ st.filter=d.k; save(); applyFilter(); };
+    bar.appendChild(b);
+  });
+  refreshChipCounts();
+}
+function refreshChipCounts(){
+  const ids=allItemIds();
+  const c={"":ids.length,store:0,luggage:0,bf:0};
+  ids.forEach(id=>{ const s=st.ship[id]||""; if(s&&c[s]!==undefined) c[s]++; });
+  document.querySelectorAll(".fchip").forEach(b=>{
+    const k=b.dataset.f||"";
+    b.textContent=b.dataset.label+" "+(c[k]||0);
+    b.classList.toggle("on",(st.filter||"")===k);
+  });
+}
+function applyFilter(){
+  const f=st.filter||"";
+  document.querySelectorAll(".grp").forEach(g=>g.style.display=f?"none":"");
+  document.querySelectorAll(".add,.hint").forEach(a=>a.style.display=f?"none":"");
+  document.querySelectorAll(".cat").forEach(cat=>{
+    let vis=0;
+    cat.querySelectorAll(".item").forEach(it=>{
+      const show=!f||((st.ship[it.dataset.id]||"")===f);
+      it.style.display=show?"":"none"; if(show)vis++;
+    });
+    cat.style.display=(f&&vis===0)?"none":"";
+  });
+  refreshChipCounts();
+}
+
+function enableDragGlobal(){
+  document.querySelectorAll(".cat-body.sortable .item.draggable > .handle").forEach(h=>{
+    h.addEventListener("pointerdown", e=>{
+      if(st.filter) return;
+      e.preventDefault();
+      const item = h.parentNode;
+      const srcCat = item.closest(".cat-body").dataset.cat;
+      const rect = item.getBoundingClientRect();
+      const offY = e.clientY - rect.top;
+      const ph = document.createElement("div");
+      ph.className = "drop-ph";
+      item.parentNode.insertBefore(ph, item.nextSibling);
+      item.style.width = rect.width + "px";
+      item.style.left  = rect.left  + "px";
+      item.style.top   = rect.top   + "px";
+      item.classList.add("dragging");
+      try{ h.setPointerCapture(e.pointerId); }catch(_){}
+      const move = ev=>{
+        item.style.top = (ev.clientY - offY) + "px";
+        const bodies = [...document.querySelectorAll(".cat-body.sortable")].filter(b=>b.offsetParent!==null);
+        let target = null;
+        for(const b of bodies){
+          const r = b.getBoundingClientRect();
+          if(ev.clientY >= r.top && ev.clientY <= r.bottom){ target = b; break; }
+        }
+        if(!target) return;
+        const others = [...target.querySelectorAll(".item.draggable:not(.dragging)")];
+        let placed = false;
+        for(const s of others){
+          const r = s.getBoundingClientRect();
+          if(ev.clientY < r.top + r.height/2){ target.insertBefore(ph, s); placed=true; break; }
+        }
+        if(!placed) target.insertBefore(ph, target.querySelector(".add"));
+      };
+      const up = ()=>{
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        item.classList.remove("dragging");
+        item.style.width = item.style.left = item.style.top = "";
+        const dstBody = ph.parentNode;
+        dstBody.insertBefore(item, ph);
+        ph.remove();
+        commitMove(item, srcCat, dstBody);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
+  });
+}
+function commitMove(item, srcCat, dstBody){
+  const dstCat = dstBody.dataset.cat;
+  const oldId = item.dataset.id;
+  if(srcCat === dstCat){
+    st.order[dstCat] = [...dstBody.querySelectorAll(".item.draggable")].map(it=>it.dataset.id);
+    save(); return;
+  }
+  const text = item.querySelector(".txt").textContent;
+  const newId = "x"+Date.now();
+  if(st.checked[oldId]){ st.checked[newId]=true; delete st.checked[oldId]; }
+  if(st.ship[oldId]){ st.ship[newId]=st.ship[oldId]; delete st.ship[oldId]; }
+  delete st.labels[oldId];
+  if(/^x/.test(oldId)){
+    for(const c in st.custom){ const i=st.custom[c].findIndex(x=>x.id===oldId); if(i>-1){ st.custom[c].splice(i,1); break; } }
+  } else {
+    st.removed[oldId]=true;
+  }
+  (st.custom[dstCat] = st.custom[dstCat]||[]).push({id:newId, text});
+  st.order[dstCat] = [...dstBody.querySelectorAll(".item.draggable")].map(it=> it===item ? newId : it.dataset.id);
+  if(st.order[srcCat]) st.order[srcCat] = st.order[srcCat].filter(x=>x!==oldId);
+  save(); render();
+}
+
+document.getElementById("reset").onclick=()=>{
+  if(confirm("清空所有勾選？（自訂項目與移除紀錄保留）")){ st.checked={}; save(); render(); }
+};
+bootDecrypt();
+
+const _b2u = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+async function decryptData(pw){
+  const baseKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({name:"PBKDF2",salt:_b2u(ENC.salt),iterations:ENC.iter,hash:"SHA-256"}, baseKey, {name:"AES-GCM",length:256}, false, ["decrypt"]);
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM",iv:_b2u(ENC.iv)}, key, _b2u(ENC.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+async function tryUnlock(pw, remember){
+  try{
+    DATA = await decryptData(pw);
+    if(remember) localStorage.setItem("expo-pw", pw); else localStorage.removeItem("expo-pw");
+    document.getElementById("lock").style.display = "none";
+    render();
+    return true;
+  }catch(e){ return false; }
+}
+function showLock(){
+  const lock = document.getElementById("lock"); lock.style.display = "flex";
+  const pw = document.getElementById("pw"), btn = document.getElementById("unlock"), err = document.getElementById("lockerr");
+  const go = async ()=>{
+    const ok = await tryUnlock(pw.value.trim(), document.getElementById("remember").checked);
+    if(!ok){ err.textContent = "密碼不對，再試一次"; pw.value=""; pw.classList.remove("confirmed"); confirmed=false; pw.focus(); }
+  };
+  let confirmed = false;
+  pw.oninput = ()=>{ confirmed=false; pw.classList.remove("confirmed"); err.textContent=""; };
+  pw.onkeydown = e=>{ if(e.key!=="Enter") return; e.preventDefault();
+    if(!confirmed){ confirmed=true; pw.classList.add("confirmed"); }  // 第一下：確認
+    else go();                                                       // 第二下：解鎖
+  };
+  btn.onclick = go;
+  pw.focus();
+}
+function bootDecrypt(){
+  const saved = localStorage.getItem("expo-pw");
+  if(saved){ tryUnlock(saved, true).then(ok=>{ if(!ok) showLock(); }); }
+  else showLock();
+}
+
+</script>
+</body>
+</html>
